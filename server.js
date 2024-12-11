@@ -1,70 +1,77 @@
 const express = require('express');
-const { graphqlHTTP } = require('express-graphql');
-const { buildSchema } = require('graphql');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const { graphqlHTTP } = require('express-graphql');
+const { buildSchema } = require('graphql');
 
-// Esquema GraphQL
+const app = express();
+
+// Crear esquema de GraphQL
 const schema = buildSchema(`
   type Query {
     hello: String
   }
 `);
 
-// Resolvers (cómo responder a las consultas)
+// Resolver de GraphQL
 const root = {
   hello: () => 'Hola Mundo desde GraphQL',
 };
+
+// Configurar GraphQL con Express
+app.use('/graphql', graphqlHTTP({
+  schema: schema,
+  rootValue: root,
+  graphiql: true,
+}));
 
 // Configuración de Swagger
 const swaggerOptions = {
   swaggerDefinition: {
     openapi: '3.0.0',
     info: {
-      title: 'GraphQL API with Swagger',
+      title: 'GraphQL API',
       version: '1.0.0',
-      description: 'A simple GraphQL API with Swagger documentation',
+      description: 'API GraphQL integrada con Swagger',
     },
-    servers: [
-      {
-        url: 'http://localhost:4000/graphql',
-        description: 'GraphQL Server',
-      },
-    ],
   },
-  apis: ['./server.js'],
+  apis: ['server.js'], // Ruta del archivo donde documentas tus endpoints
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
-
-// Crear aplicación Express
-const app = express();
-
-// Rutas de Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 /**
  * @swagger
  * /graphql:
- *   get:
- *     summary: Interactuar con GraphQL API
- *     description: Utiliza GraphQL para consultar "Hola Mundo".
+ *   post:
+ *     summary: Ejecutar consultas GraphQL
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               query:
+ *                 type: string
+ *                 description: La consulta GraphQL
+ *                 example: "{ hello }"
  *     responses:
  *       200:
- *         description: GraphQL response
+ *         description: Respuesta de GraphQL
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
  */
-app.use(
-  '/graphql',
-  graphqlHTTP({
-    schema: schema,
-    rootValue: root,
-    graphiql: true, // Habilita GraphiQL para probar en el navegador
-  })
-);
+app.post('/graphql', graphqlHTTP({
+  schema: schema,
+  rootValue: root,
+}));
 
-// Iniciar servidor
 const PORT = 4000;
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`Documentación en http://localhost:${PORT}/api-docs`);
+  console.log(`Servidor corriendo en http://localhost:${PORT}/graphql`);
+  console.log(`Documentación Swagger en http://localhost:${PORT}/api-docs`);
 });
